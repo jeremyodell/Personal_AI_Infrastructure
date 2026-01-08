@@ -225,3 +225,60 @@ Flow:
 ```
 
 ---
+
+## Artifact Organization
+
+All designs and stories saved to:
+```
+docs/features/YYYY-MM-DD-feature-slug/
+├── frontend/
+│   ├── design.md          (from frontend-design skill)
+│   └── stories.md         (from writing-plans)
+├── backend/
+│   ├── design.md          (from feature-dev skill)
+│   └── stories.md         (from writing-plans)
+└── linear-summary.md      (upload results, issue IDs, links)
+```
+
+---
+
+## Dependencies
+
+| Dependency | Purpose |
+|------------|---------|
+| `feature-dev` | Backend architecture and design |
+| `frontend-design` | UI/UX design and component planning |
+| `superpowers:writing-plans` | Story decomposition with dependencies |
+| Linear MCP server | Linear API integration |
+
+---
+
+## Integration with PAI Systems
+
+| PAI System | Integration |
+|------------|-------------|
+| **CORE Routing** | "/plan-to-linear" and natural language triggers |
+| **History** | Captures all planning sessions for reference |
+| **Voice** | Announces phase transitions |
+| **Response Format** | Uses 📋 SUMMARY, 🔍 ANALYSIS, ✅ RESULTS, 🎯 COMPLETED |
+
+---
+
+## Design Principles
+
+1. **Smart detection** - Analyze requirements, confirm with user
+2. **Stop before implementation** - Design phase only, no code
+3. **Natural dependencies** - Let writing-plans determine blocking relations
+4. **Smart labeling** - Base labels + keyword-based detection
+5. **Nested hierarchy** - Umbrella parent → concern sub-parents → stories
+6. **Skill composition** - Orchestrate existing skills, don't reimplement
+
+---
+
+## Installation
+
+See `INSTALL.md` in pack root.
+
+## Verification
+
+See `VERIFY.md` in pack root.
