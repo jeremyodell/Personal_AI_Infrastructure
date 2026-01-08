@@ -136,3 +136,92 @@ Story: "Create user login endpoint with JWT authentication"
 → Detected labels: `["pre-planned", "backend", "api", "authentication", "security"]`
 
 ---
+
+## Configuration
+
+**File:** `.claude/plan-to-linear.local.md`
+
+```yaml
+---
+linear_team: "Engineering"
+linear_project: "Product Development"
+default_labels:
+  - "pre-planned"
+frontend_labels:
+  - "frontend"
+  - "ui"
+backend_labels:
+  - "backend"
+  - "api"
+smart_label_keywords:
+  database: ["db", "schema", "migration", "query", "sql"]
+  authentication: ["auth", "login", "session", "permission", "jwt"]
+  forms: ["form", "validation", "input", "submit"]
+  testing: ["test", "spec", "e2e", "unit"]
+  security: ["security", "vulnerability", "encryption", "sanitize"]
+  performance: ["performance", "optimize", "cache", "lazy"]
+  documentation: ["docs", "documentation", "readme", "guide"]
+---
+
+# Plan to Linear Configuration
+
+This file configures the plan-to-linear pack for this project.
+```
+
+---
+
+## Usage Examples
+
+### Example 1: Frontend-Only Feature
+```
+User: "/plan-to-linear Add user profile dashboard with avatar upload"
+
+Flow:
+✅ Phase 1: Detect "dashboard", "upload" → Frontend only
+✅ Phase 2: Run frontend-design (design phase only)
+✅ Phase 3: Decompose into stories
+✅ Phase 4: Upload to Linear
+  └─ Parent: "Feature: User Profile Dashboard"
+      └─ Sub-parent: "Frontend: User Profile Dashboard"
+          ├─ Create profile layout component (labels: [pre-planned, frontend])
+          ├─ Implement avatar upload widget (labels: [pre-planned, frontend, forms])
+          └─ Add responsive styling (labels: [pre-planned, frontend])
+```
+
+### Example 2: Backend-Only Feature
+```
+User: "I want to plan a rate limiting system for API endpoints"
+
+Flow:
+✅ Phase 1: Detect "API", "rate limiting" → Backend only
+✅ Phase 2: Run feature-dev (backend focus, design only)
+✅ Phase 3: Decompose into stories
+✅ Phase 4: Upload to Linear
+  └─ Parent: "Feature: Rate Limiting System"
+      └─ Sub-parent: "Backend: Rate Limiting System"
+          ├─ Design rate limit storage (labels: [pre-planned, backend, database])
+          ├─ Create middleware (labels: [pre-planned, backend, api, performance])
+          └─ Add monitoring (labels: [pre-planned, backend, performance])
+```
+
+### Example 3: Full-Stack Feature
+```
+User: "create stories for user authentication with JWT"
+
+Flow:
+✅ Phase 1: Detect "authentication" + implicit UI → Both
+✅ Phase 2a: Run frontend-design (login UI)
+✅ Phase 2b: Run feature-dev (auth backend)
+✅ Phase 3: Decompose both designs, analyze dependencies
+✅ Phase 4: Upload to Linear with blocking relations
+  └─ Parent: "Feature: User Authentication"
+      ├─ Sub-parent: "Frontend: User Authentication"
+      │   ├─ Login form component (blocked by: Backend JWT endpoint)
+      │   └─ Auth state management (blocked by: Backend JWT endpoint)
+      └─ Sub-parent: "Backend: User Authentication"
+          ├─ JWT token generation (labels: [pre-planned, backend, authentication, security])
+          ├─ Auth middleware (labels: [pre-planned, backend, api, security])
+          └─ User session storage (labels: [pre-planned, backend, database])
+```
+
+---
