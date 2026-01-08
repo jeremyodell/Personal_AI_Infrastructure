@@ -1,0 +1,6 @@
+# Local configuration
+*.local.md
+
+# Test artifacts
+test-output/
+.cache/
