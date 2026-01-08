@@ -109,3 +109,30 @@ Parent: "Feature: [name]" (labels: [pre-planned])
 - Within-concern: Sequential dependencies within frontend or backend
 
 ---
+
+## Smart Labeling Strategy
+
+### Base Labels (Always Applied)
+- Parent issue: `["pre-planned"]`
+- Frontend sub-parent + stories: `["pre-planned", "frontend"]`
+- Backend sub-parent + stories: `["pre-planned", "backend"]`
+
+### Smart Analysis Labels (Auto-Detected)
+Scans story title, description, and technical notes for keywords:
+
+| Label | Keywords |
+|-------|----------|
+| `database` | db, schema, migration, query, sql, postgres, mysql, mongo |
+| `authentication` | auth, login, session, permission, jwt, oauth, rbac |
+| `api` | endpoint, route, rest, graphql, request, response |
+| `forms` | form, validation, input, submit, field, error handling |
+| `testing` | test, spec, e2e, unit, integration, coverage |
+| `security` | security, vulnerability, encryption, sanitize, xss, csrf |
+| `performance` | performance, optimize, cache, lazy, memoize, debounce |
+| `documentation` | docs, documentation, readme, guide, comment |
+
+**Example:**
+Story: "Create user login endpoint with JWT authentication"
+→ Detected labels: `["pre-planned", "backend", "api", "authentication", "security"]`
+
+---
