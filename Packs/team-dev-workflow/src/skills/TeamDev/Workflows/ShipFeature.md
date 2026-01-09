@@ -1,0 +1,577 @@
+---
+name: ShipFeature
+description: Commit changes, create PR, and sync Linear ticket status
+type: workflow
+---
+
+# ShipFeature Workflow
+
+**Final phase: Commit → Push → PR → Linear Sync**
+
+**Input:**
+- `ticket_id` - Linear ticket ID
+- `identifier` - Linear ticket identifier (e.g., "ENG-123")
+- `title` - Feature title
+- `branch` - Feature branch name (e.g., "feat/ENG-123-add-dashboard")
+- `implementation_summary` - Summary of what was implemented
+
+**Output:** PR created and Linear ticket updated to "In Review"
+
+---
+
+## Workflow Steps
+
+### Step 1: Verify Quality Gates Passed
+
+**Pre-requisite check:**
+```bash
+# Ensure all gates pass before shipping
+npm test && npm run lint && npm run typecheck && npm run build
+```
+
+**If any gate fails:**
+```markdown
+❌ BLOCKED: Quality gates must pass before shipping
+
+Run RunQualityGates workflow first:
+  /run RunQualityGates --ticket-id ${ticket_id} --auto-fix true
+
+Cannot proceed until all gates pass.
+```
+
+---
+
+### Step 2: Generate Commit Message
+
+**Conventional commit format:**
+```typescript
+const commitType = determineCommitType(labels);
+// "feat" for features, "fix" for bugs, "refactor", "docs", etc.
+
+const commitScope = identifier;
+// ENG-123
+
+const commitMessage = `${commitType}(${commitScope}): ${title}
+
+${implementation_summary}
+
+Resolves: ${identifier}
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`;
+```
+
+**Example output:**
+```
+feat(ENG-123): Add user profile dashboard
+
+Implemented user profile dashboard with:
+- Profile information display
+- Edit profile functionality
+- Avatar upload
+- Activity feed
+
+Added comprehensive test coverage (95%)
+Ensured WCAG 2.1 AA accessibility
+Follows design system conventions
+
+Resolves: ENG-123
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+```
+
+---
+
+### Step 3: Commit Changes
+
+**Stage and commit:**
+```bash
+# Stage all changes
+git add .
+
+# Commit with message
+git commit -m "$(cat <<'EOF'
+${commitMessage}
+EOF
+)"
+```
+
+**Verify commit:**
+```bash
+# Get commit SHA
+COMMIT_SHA=$(git rev-parse HEAD)
+
+# Verify commit was successful
+if [ $? -eq 0 ]; then
+  echo "✅ Commit successful: $COMMIT_SHA"
+else
+  echo "❌ Commit failed"
+  exit 1
+fi
+```
+
+---
+
+### Step 4: Push Branch
+
+**Push to remote:**
+```bash
+# Push branch with upstream tracking
+git push -u origin ${branch}
+```
+
+**Verify push:**
+```bash
+if [ $? -eq 0 ]; then
+  echo "✅ Branch pushed to origin/${branch}"
+else
+  echo "❌ Push failed - check network and permissions"
+  exit 1
+fi
+```
+
+---
+
+### Step 5: Generate PR Body
+
+**Create comprehensive PR description:**
+```markdown
+## Summary
+${title}
+
+## Ticket
+Linear: ${identifier}
+
+## What Changed
+${implementation_summary}
+
+## Implementation Details
+
+### Architecture
+${architecture_summary || 'See commit history for details'}
+
+### Testing
+- Test coverage: ${coverage}%
+- All tests passing: ✅
+- Manual testing: ${manual_test_notes || 'Verified locally'}
+
+### Quality Gates
+- ✅ Tests: 0 failures
+- ✅ Linting: 0 errors
+- ✅ Type checking: 0 errors
+- ✅ Build: successful
+
+## Deployment Notes
+${deployment_notes || 'No special deployment steps required'}
+
+## Screenshots/Demo
+${screenshots || '_Add screenshots if applicable_'}
+
+---
+
+🤖 Generated with [PAI team-dev-workflow](https://github.com/yourusername/PAI)
+```
+
+---
+
+### Step 6: Create Pull Request
+
+**Use GitHub CLI:**
+```bash
+gh pr create \
+  --title "${commitType}(${commitScope}): ${title}" \
+  --body "$(cat <<'EOF'
+${prBody}
+EOF
+)" \
+  --base main \
+  --head ${branch}
+```
+
+**Capture PR URL:**
+```bash
+PR_URL=$(gh pr view --json url --jq '.url')
+
+echo "✅ PR created: $PR_URL"
+```
+
+**Alternative (if gh CLI not available):**
+```typescript
+// Use GitHub API via WebFetch
+const response = await fetch('https://api.github.com/repos/${owner}/${repo}/pulls', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'token ${GITHUB_TOKEN}',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: `${commitType}(${commitScope}): ${title}`,
+    body: prBody,
+    head: branch,
+    base: 'main'
+  })
+});
+
+const pr = await response.json();
+const PR_URL = pr.html_url;
+```
+
+---
+
+### Step 7: Update Linear Ticket Status
+
+**Update to "In Review":**
+```typescript
+await mcp__linear__update_issue({
+  id: ticket_id,
+  state: "In Review"
+});
+```
+
+**Verify update:**
+```markdown
+✅ Linear ticket updated to "In Review"
+```
+
+---
+
+### Step 8: Post PR Link to Linear
+
+**Add comment with PR link:**
+```typescript
+await mcp__linear__create_comment({
+  issueId: ticket_id,
+  body: `## Pull Request Created
+
+🎉 Feature implementation complete and ready for review!
+
+**PR:** ${PR_URL}
+
+### Summary
+${title}
+
+### Quality Gates
+All quality gates passed:
+- ✅ Tests: 0 failures
+- ✅ Linting: 0 errors
+- ✅ Type checking: 0 errors
+- ✅ Build: successful
+
+### Test Coverage
+${coverage}%
+
+### Review Checklist
+- [ ] Code review approved
+- [ ] QA testing complete
+- [ ] Documentation updated (if needed)
+- [ ] Ready to merge
+
+---
+
+Generated by PAI team-dev-workflow
+`
+});
+```
+
+---
+
+### Step 9: Final Report
+
+**Output:**
+```markdown
+✅ Feature Shipped - ${identifier}
+
+📋 SUMMARY:
+Feature ${identifier} successfully shipped and ready for team review
+
+🔍 SHIP DETAILS:
+- Branch: ${branch}
+- Commit: ${COMMIT_SHA}
+- PR: ${PR_URL}
+- Linear status: In Review
+
+⚡ ACTIONS:
+- ✅ Committed changes with conventional message
+- ✅ Pushed branch to origin/${branch}
+- ✅ Created PR: ${PR_URL}
+- ✅ Updated Linear ticket to "In Review"
+- ✅ Posted PR link to Linear
+
+✅ RESULTS:
+Feature ${identifier} ready for team review
+All quality gates passed
+PR created with comprehensive description
+
+📁 CAPTURE: Shipped ${identifier} - PR created at ${PR_URL}
+
+➡️ NEXT STEPS:
+1. Request code review from team
+2. Address any review feedback
+3. Merge when approved
+4. Linear will auto-update to "Done" on merge
+
+🎯 COMPLETED: ${identifier} implemented, reviewed, and shipped
+```
+
+---
+
+## Configuration
+
+**PR settings** (from `config/workflow-config.yaml`):
+```yaml
+pull_request:
+  base_branch: "main"
+  auto_assign: true
+  auto_request_reviewers: true
+  labels:
+    - "needs-review"
+    - "team-dev"
+  draft: false
+
+github:
+  cli_tool: "gh"  # or "api" for direct API calls
+  require_linear_link: true
+  conventional_commits: true
+
+linear:
+  review_state: "In Review"
+  merged_state: "Done"
+  auto_close_on_merge: true
+```
+
+---
+
+## Error Handling
+
+### If Commit Fails:
+```markdown
+❌ ERROR: Commit failed
+
+Possible causes:
+- No changes to commit (git status shows clean)
+- Pre-commit hook failed
+- Git user.name or user.email not configured
+
+NEXT STEPS:
+1. Check git status: git status
+2. Review pre-commit hook failures (if any)
+3. Verify git config: git config user.name && git config user.email
+```
+
+### If Push Fails:
+```markdown
+❌ ERROR: Push failed
+
+Possible causes:
+- Network connectivity issue
+- No push permission to repository
+- Branch protection rules blocking push
+- Remote branch exists with different history
+
+NEXT STEPS:
+1. Check network connection
+2. Verify git push permissions
+3. Review branch protection rules
+4. Try: git pull origin ${branch} --rebase && git push
+```
+
+### If PR Creation Fails:
+```markdown
+❌ ERROR: PR creation failed
+
+Possible causes:
+- GitHub CLI not authenticated (gh auth status)
+- No permission to create PRs
+- PR already exists for this branch
+- Base branch doesn't exist
+
+NEXT STEPS:
+1. Authenticate GitHub CLI: gh auth login
+2. Check existing PRs: gh pr list --head ${branch}
+3. Verify base branch exists: git ls-remote origin main
+4. Create PR manually on GitHub if needed
+```
+
+### If Linear Update Fails:
+```markdown
+⚠️ WARNING: Linear update failed
+
+PR was created successfully but Linear ticket update failed.
+
+Possible causes:
+- Linear API rate limit
+- Network connectivity
+- Ticket state transition not allowed
+
+MANUAL ACTION REQUIRED:
+1. Manually update Linear ticket to "In Review"
+2. Post PR link: ${PR_URL}
+
+PR URL: ${PR_URL}
+```
+
+---
+
+## Git Hooks Integration
+
+**Pre-commit hook example:**
+```bash
+#!/bin/bash
+# Ensure quality gates pass before commit
+
+npm run lint || exit 1
+npm run typecheck || exit 1
+
+echo "✅ Pre-commit checks passed"
+```
+
+**Commit-msg hook example:**
+```bash
+#!/bin/bash
+# Validate conventional commit format
+
+commit_msg=$(cat $1)
+
+if ! echo "$commit_msg" | grep -qE '^(feat|fix|docs|style|refactor|test|chore)\(.*\):'; then
+  echo "❌ Commit message must follow conventional commit format"
+  echo "   Example: feat(ENG-123): Add user dashboard"
+  exit 1
+fi
+
+echo "✅ Commit message valid"
+```
+
+---
+
+## PR Templates
+
+**Create `.github/pull_request_template.md`:**
+```markdown
+## Summary
+<!-- Brief description of changes -->
+
+## Ticket
+<!-- Linear ticket: ENG-XXX -->
+
+## What Changed
+<!-- Detailed list of changes -->
+
+## Testing
+- [ ] All tests passing
+- [ ] Manual testing complete
+- [ ] Edge cases covered
+
+## Quality Gates
+- [ ] Tests: 0 failures
+- [ ] Linting: 0 errors
+- [ ] Type checking: 0 errors
+- [ ] Build: successful
+
+## Screenshots
+<!-- Add screenshots if applicable -->
+
+## Deployment Notes
+<!-- Any special deployment considerations -->
+```
+
+---
+
+## GitHub Actions Integration
+
+**Auto-run quality gates on PR:**
+```yaml
+name: Quality Gates
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npm test
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+```
+
+---
+
+## Usage
+
+**Invoke from WorkOnTicket workflow:**
+```typescript
+await invokeWorkflow({
+  workflow: "ShipFeature",
+  params: {
+    ticket_id: "abc123",
+    identifier: "ENG-123",
+    title: "Add user dashboard",
+    branch: "feat/ENG-123-add-user-dashboard",
+    implementation_summary: "Implemented dashboard with profile and activity feed"
+  }
+});
+```
+
+**Direct invocation:**
+```bash
+/run ShipFeature \
+  --ticket-id abc123 \
+  --identifier ENG-123 \
+  --title "Add user dashboard" \
+  --branch feat/ENG-123-add-user-dashboard \
+  --implementation-summary "Comprehensive dashboard implementation"
+```
+
+---
+
+## Best Practices
+
+1. **Always verify quality gates** before shipping
+2. **Write detailed commit messages** with context
+3. **Include comprehensive PR descriptions** to help reviewers
+4. **Link Linear tickets** in PR body for traceability
+5. **Add screenshots/demos** for UI changes
+6. **Tag appropriate reviewers** based on code areas
+7. **Use conventional commits** for automated changelogs
+8. **Keep PRs focused** - one feature per PR
+
+---
+
+## Post-Ship Workflow
+
+After PR is created:
+1. **Notify team** in Slack/Discord (optional automation)
+2. **Request specific reviewers** based on expertise
+3. **Monitor CI/CD** for any deployment issues
+4. **Address review feedback** promptly
+5. **Merge when approved** (manual or auto-merge)
+6. **Verify Linear auto-updates** to "Done" on merge
+7. **Close feature branch** after merge
+
+---
+
+## Rollback Procedure
+
+If issues found after shipping:
+
+```bash
+# Revert PR
+gh pr close ${PR_NUMBER}
+
+# Revert commit
+git revert ${COMMIT_SHA}
+git push origin main
+
+# Update Linear
+mcp__linear__update_issue({
+  id: ticket_id,
+  state: "In Progress",
+  comment: "Reverted due to: ${REASON}"
+})
+```

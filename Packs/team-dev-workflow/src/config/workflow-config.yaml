@@ -1,0 +1,414 @@
+# Team Development Workflow Configuration
+# PAI Pack: team-dev-workflow
+# Version: 1.0.0
+
+# =============================================================================
+# ROUTING CONFIGURATION
+# =============================================================================
+
+routing:
+  # Label-based routing rules
+  labels:
+    # Skip discovery and architecture phases (go straight to implementation)
+    skip_discovery:
+      - pre-planned
+      - hotfix
+
+    # Use frontend-design plugin for implementation
+    use_frontend_design:
+      - ui
+      - frontend
+      - design
+
+    # Fast-track workflow (reduced exploration)
+    fast_track:
+      - bug
+      - hotfix
+      - urgent
+
+    # Stop after architecture (no implementation)
+    architecture_only:
+      - spike
+      - research
+      - exploration
+
+  # Default routing behavior
+  defaults:
+    tdd_enforcement: standard  # Options: strict, standard, flexible
+    quality_gates_enabled: true
+    auto_ship: false  # Require explicit user approval before shipping
+
+# =============================================================================
+# LINEAR MCP INTEGRATION
+# =============================================================================
+
+linear:
+  # Issue state transitions
+  states:
+    start: "In Progress"
+    review: "In Review"
+    done: "Done"
+    canceled: "Canceled"
+
+  # Automatic status updates
+  auto_update:
+    on_start: true  # Update to "In Progress" when starting work
+    on_pr_create: true  # Update to "In Review" when PR created
+    on_merge: false  # Don't auto-update on merge (GitHub Action handles this)
+
+  # Comment posting
+  comments:
+    post_architecture: true  # Post architecture summary
+    post_implementation: true  # Post implementation complete
+    post_pr_link: true  # Post PR link when created
+    post_progress_on_stop: true  # Post progress when session ends
+
+  # API configuration
+  api:
+    timeout_ms: 10000  # 10 seconds
+    retry_attempts: 3
+    retry_delay_ms: 1000  # 1 second between retries
+
+# =============================================================================
+# PLUGIN INTEGRATION
+# =============================================================================
+
+plugins:
+  # feature-dev plugin (Phases 1-4: Discovery & Architecture)
+  feature_dev:
+    enabled: true
+    phases:
+      - discovery
+      - exploration
+      - questions
+      - architecture
+    stop_before_implementation: true  # Wait for user approval
+
+  # frontend-design plugin (Phase 5: UI Implementation)
+  frontend_design:
+    enabled: true
+    require_accessibility: true  # WCAG 2.1 AA compliance
+    aesthetic_quality: high  # Options: minimal, standard, high
+    include_tests: true  # Generate component tests
+
+  # ralph-wiggum plugin (TDD Enforcement)
+  ralph_wiggum:
+    enabled: true
+    model: sonnet  # Options: haiku, sonnet, opus
+    max_iterations:
+      ui: 30  # UI implementation
+      backend: 50  # Backend/standard implementation
+      quality_fixes: 20  # Quality gate auto-fixes
+      bug_fixes: 30  # Bug fix implementation
+      refactoring: 25  # Code refactoring
+    completion_detection:
+      use_promise_tags: true
+      timeout_per_iteration_ms: 300000  # 5 minutes per iteration
+
+  # pr-review-toolkit plugin (Code Review)
+  pr_review_toolkit:
+    enabled: true
+    confidence_threshold: 80  # Only report issues >= 80% confidence
+    auto_fix_threshold: 90  # Auto-fix issues >= 90% confidence
+    review_focus:
+      - simplicity
+      - dry
+      - elegance
+      - bugs
+      - conventions
+
+# =============================================================================
+# QUALITY GATES
+# =============================================================================
+
+quality_gates:
+  # Gate definitions
+  gates:
+    test:
+      command: npm test
+      timeout_ms: 300000  # 5 minutes
+      required: true
+      failure_blocks_ship: true
+
+    lint:
+      command: npm run lint
+      timeout_ms: 60000  # 1 minute
+      required: true
+      failure_blocks_ship: true
+
+    typecheck:
+      command: npm run typecheck
+      timeout_ms: 120000  # 2 minutes
+      required: true
+      failure_blocks_ship: true
+
+    build:
+      command: npm run build
+      timeout_ms: 300000  # 5 minutes
+      required: true
+      failure_blocks_ship: true
+
+  # Auto-fix configuration
+  auto_fix:
+    enabled: true
+    use_ralph_loop: true
+    max_iterations: 20
+    retry_on_failure: true
+
+  # Coverage requirements
+  coverage:
+    enabled: true
+    threshold: 80  # Minimum coverage percentage
+    fail_below_threshold: true
+
+# =============================================================================
+# PULL REQUEST CONFIGURATION
+# =============================================================================
+
+pull_request:
+  # GitHub configuration
+  github:
+    cli_tool: gh  # Options: gh, api
+    require_linear_link: true
+    conventional_commits: true
+
+  # PR settings
+  settings:
+    base_branch: main
+    auto_assign: true
+    auto_request_reviewers: true
+    draft: false  # Create as draft PR
+    labels:
+      - needs-review
+      - team-dev
+
+  # PR body template
+  template:
+    include_ticket_link: true
+    include_quality_gates: true
+    include_test_coverage: true
+    include_screenshots_section: true
+
+# =============================================================================
+# GIT CONFIGURATION
+# =============================================================================
+
+git:
+  # Branch naming
+  branch:
+    prefix: feat  # Options: feat, fix, refactor, docs
+    format: "{prefix}/{identifier}-{slug}"  # e.g., feat/ENG-123-add-dashboard
+    max_length: 80  # Maximum branch name length
+
+  # Commit message format
+  commit:
+    format: conventional  # Options: conventional, simple
+    types:
+      - feat  # New feature
+      - fix  # Bug fix
+      - refactor  # Code refactoring
+      - docs  # Documentation
+      - test  # Tests
+      - chore  # Maintenance
+    include_ticket_id: true
+    co_author: "Claude Sonnet 4.5 <noreply@anthropic.com>"
+
+  # Pre-commit checks
+  pre_commit:
+    run_lint: true
+    run_typecheck: true
+    fail_on_error: true
+
+# =============================================================================
+# TDD ENFORCEMENT
+# =============================================================================
+
+tdd:
+  # Enforcement levels
+  enforcement:
+    strict:  # Bugs, hotfixes
+      write_tests_first: required
+      min_coverage: 90
+      fail_without_tests: true
+
+    standard:  # Normal features
+      write_tests_first: required
+      min_coverage: 80
+      fail_without_tests: true
+
+    flexible:  # Spikes, research
+      write_tests_first: recommended
+      min_coverage: 50
+      fail_without_tests: false
+
+  # Test framework detection
+  frameworks:
+    - jest
+    - vitest
+    - mocha
+    - pytest
+    - rspec
+
+# =============================================================================
+# HOOKS CONFIGURATION
+# =============================================================================
+
+hooks:
+  # Linear sync on session end
+  linear_sync_on_complete:
+    enabled: true
+    sync_on_stop: true
+    post_summary: true
+    update_status: true
+    timeout_ms: 5000
+
+  # Quality gate blocker
+  quality_gate_blocker:
+    enabled: true
+    block_on_failure: true
+    allow_override: false  # Set true to allow --force flag
+    grace_period_seconds: 300  # 5 minutes grace period before blocking
+    check_gates:
+      - test
+      - lint
+      - typecheck
+      - build
+
+  # Context capture (future)
+  context_capture:
+    enabled: false
+    capture_on:
+      - phase_complete
+      - decision_made
+      - error_occurred
+
+  # Notifications (future)
+  notification_sender:
+    enabled: false
+    channels:
+      slack:
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#engineering"
+      discord:
+        webhook_url: "${DISCORD_WEBHOOK_URL}"
+
+# =============================================================================
+# PHASE TIMEOUTS
+# =============================================================================
+
+timeouts:
+  # Phase-specific timeouts (in milliseconds)
+  phases:
+    discovery: 600000  # 10 minutes
+    exploration: 1800000  # 30 minutes
+    questions: 300000  # 5 minutes
+    architecture: 1800000  # 30 minutes
+    implementation: 7200000  # 2 hours
+    code_review: 600000  # 10 minutes
+    quality_gates: 900000  # 15 minutes
+    ship: 300000  # 5 minutes
+
+  # Overall workflow timeout
+  workflow:
+    max_duration_ms: 14400000  # 4 hours total
+    warn_at_percentage: 75  # Warn at 75% of max duration
+
+# =============================================================================
+# LOGGING AND DEBUGGING
+# =============================================================================
+
+logging:
+  # Log levels: debug, info, warn, error
+  level: info
+
+  # What to log
+  log:
+    phase_transitions: true
+    tool_calls: false  # Set true for debugging
+    linear_api_calls: false  # Set true for debugging
+    ralph_iterations: true
+    quality_gate_results: true
+
+  # Log destinations
+  destinations:
+    - console
+    - file  # Logs to ~/.claude/logs/team-dev-workflow.log
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+features:
+  # Experimental features
+  experimental:
+    parallel_quality_gates: false  # Run gates in parallel
+    smart_iteration_limits: false  # Adjust ralph iterations dynamically
+    context_preservation: true  # Save context between sessions
+    auto_rebase: false  # Auto-rebase on main before shipping
+
+  # Beta features
+  beta:
+    ai_commit_messages: false  # Generate commit messages with AI
+    auto_screenshot: false  # Auto-capture screenshots for UI PRs
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+
+performance:
+  # Parallel execution
+  parallelism:
+    max_code_explorer_agents: 3
+    max_code_architect_agents: 3
+    max_code_reviewer_agents: 3
+
+  # Caching
+  caching:
+    cache_linear_labels: true
+    cache_team_info: true
+    cache_duration_seconds: 3600  # 1 hour
+
+  # Resource limits
+  limits:
+    max_file_size_bytes: 1048576  # 1 MB
+    max_files_per_pr: 50
+    max_context_tokens: 100000
+
+# =============================================================================
+# USER PREFERENCES
+# =============================================================================
+
+user:
+  # Notification preferences
+  notifications:
+    show_phase_transitions: true
+    show_progress_updates: true
+    show_ralph_iterations: true
+    sound_on_complete: false
+
+  # Interaction preferences
+  interaction:
+    auto_confirm_low_risk: false  # Auto-confirm safe operations
+    require_approval_before_ship: true
+    show_detailed_errors: true
+
+  # Display preferences
+  display:
+    use_emojis: true
+    color_output: true
+    compact_mode: false
+
+# =============================================================================
+# ENVIRONMENT VARIABLES
+# =============================================================================
+
+# Environment variables that can override config:
+# - SKIP_QUALITY_GATES: Skip quality gate checks (not recommended)
+# - DISABLE_HOOKS: Disable all hooks temporarily
+# - RALPH_MAX_ITERATIONS: Override ralph max iterations
+# - LINEAR_AUTO_UPDATE: Enable/disable Linear auto-updates
+# - TDD_ENFORCEMENT: Override TDD enforcement level
+
+# Example usage:
+# SKIP_QUALITY_GATES=true work on ENG-123
+# RALPH_MAX_ITERATIONS=100 work on ENG-456
