@@ -29,7 +29,7 @@ type: command
 IDENTIFIER="$1"
 
 # Find worktree path
-WORKTREE_PATH=$(git worktree list | grep -i "$IDENTIFIER" | awk '{print $1}')
+WORKTREE_PATH=$(git worktree list | grep -F -i "$IDENTIFIER" | awk '{print $1}')
 
 if [ -z "$WORKTREE_PATH" ]; then
   echo "❌ No worktree found for $IDENTIFIER"
@@ -42,7 +42,7 @@ echo "Found worktree: $WORKTREE_PATH"
 2. **Safety check - uncommitted changes**
 ```bash
 # Check for uncommitted changes
-cd "$WORKTREE_PATH"
+cd "$WORKTREE_PATH" || exit 1
 if ! git diff-index --quiet HEAD --; then
   echo "❌ Worktree has uncommitted changes. Options:"
   echo "  1) Commit changes first"
@@ -56,7 +56,8 @@ fi
 3. **Remove worktree**
 ```bash
 # Return to main repo
-cd "$(git rev-parse --show-toplevel)"
+REPO_ROOT=$(git rev-parse --show-toplevel) || exit 1
+cd "$REPO_ROOT" || exit 1
 
 # Remove worktree
 git worktree remove "$WORKTREE_PATH"
@@ -74,7 +75,7 @@ echo "✅ Removed worktree for $IDENTIFIER"
 BRANCH_NAME=$(basename "$WORKTREE_PATH" | sed 's/^feat-/feat\//')
 
 # Check if branch is merged
-if git branch --merged | grep -q "$BRANCH_NAME"; then
+if git branch --merged | grep -F -q "$BRANCH_NAME"; then
   git branch -d "$BRANCH_NAME"
   echo "✅ Deleted local branch $BRANCH_NAME (already merged)"
 else
@@ -108,12 +109,12 @@ echo "$WORKTREES"
 ```bash
 REMOVED_COUNT=0
 
-for WORKTREE_PATH in $WORKTREES; do
+echo "$WORKTREES" | while IFS= read -r WORKTREE_PATH; do
   # Extract branch name
-  BRANCH_NAME=$(git worktree list | grep "$WORKTREE_PATH" | awk '{print $3}' | tr -d '[]')
+  BRANCH_NAME=$(git worktree list | grep -F "$WORKTREE_PATH" | awk '{print $3}' | tr -d '[]')
 
   # Check if merged
-  if git branch --merged | grep -q "$BRANCH_NAME"; then
+  if git branch --merged | grep -F -q "$BRANCH_NAME"; then
     echo "Removing merged worktree: $WORKTREE_PATH"
 
     # Remove worktree
@@ -156,17 +157,18 @@ git worktree list | grep ".worktrees/" | while read -r line; do
 
   # Check if merged
   MERGED_STATUS="Not merged"
-  if git branch --merged | grep -q "$BRANCH_NAME"; then
+  if git branch --merged | grep -F -q "$BRANCH_NAME"; then
     MERGED_STATUS="✅ Merged"
   fi
 
   # Check for uncommitted changes
-  cd "$WORKTREE_PATH"
+  cd "$WORKTREE_PATH" || exit 1
   CHANGES_STATUS="Clean"
   if ! git diff-index --quiet HEAD --; then
     CHANGES_STATUS="⚠️ Uncommitted changes"
   fi
-  cd - > /dev/null
+  PREV_DIR=$(pwd)
+  cd - > /dev/null || exit 1
 
   echo "- $WORKTREE_PATH"
   echo "  Branch: $BRANCH_NAME"
