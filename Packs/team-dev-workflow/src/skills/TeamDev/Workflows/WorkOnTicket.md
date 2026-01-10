@@ -76,13 +76,92 @@ let SKIP_PHASES_1_TO_4 = isPrePlanned;
 let USE_FRONTEND_DESIGN = isUIFeature;
 ```
 
-4. **Create Feature Branch**
+4. **Create Feature Branch with Worktree**
+
+Read worktree configuration:
+```bash
+# Load config (pseudocode - actual implementation reads YAML)
+WORKTREE_ENABLED=$(grep "enabled: true" workflow-config.yaml | grep worktree)
+WORKTREE_BASE_PATH=$(grep "base_path:" workflow-config.yaml | awk '{print $2}' | tr -d '"')
+```
+
+If worktrees enabled:
 ```bash
 # Slugify title (lowercase, hyphens, alphanumeric only)
 SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
 
-# Create and checkout branch
+# Store original repo path
+ORIGINAL_REPO_PATH=$(pwd)
+
+# Create worktree path
+WORKTREE_PATH="$WORKTREE_BASE_PATH/feat-$IDENTIFIER-$SLUG"
+
+# Check for existing worktree
+if git worktree list | grep -q "$WORKTREE_PATH"; then
+  echo "⚠️  Worktree already exists for $IDENTIFIER"
+  echo ""
+  echo "Options:"
+  echo "  1) Resume work in existing worktree"
+  echo "  2) Remove and recreate (loses uncommitted changes)"
+  echo "  3) Cancel"
+  # Prompt user for choice (use AskUserQuestion tool)
+  # If option 1: cd to existing worktree
+  # If option 2: git worktree remove + recreate
+  # If option 3: exit
+fi
+
+# Check for lock file (concurrent agent detection)
+LOCK_PATH=".worktrees/.locks/$IDENTIFIER.lock"
+if [ -f "$LOCK_PATH" ]; then
+  echo "❌ ERROR: Another agent is already working on $IDENTIFIER"
+  echo "Lock file: $LOCK_PATH"
+  exit 1
+fi
+
+# Create lock file
+mkdir -p ".worktrees/.locks"
+echo "$WORKTREE_PATH" > "$LOCK_PATH"
+trap "rm -f $LOCK_PATH" EXIT
+
+# Create worktree with new branch
+if git worktree add "$WORKTREE_PATH" -b "feat/$IDENTIFIER-$SLUG"; then
+  cd "$WORKTREE_PATH"
+
+  # Track worktree in workflow state
+  echo "WORKTREE_PATH=$WORKTREE_PATH" >> .workflow-state
+  echo "ORIGINAL_REPO_PATH=$ORIGINAL_REPO_PATH" >> .workflow-state
+  echo "KEEP_WORKTREE=false" >> .workflow-state
+
+  echo "✅ Worktree created at $WORKTREE_PATH"
+else
+  # Fallback to main repo workflow
+  echo "❌ Failed to create worktree"
+  echo "Falling back to main repo workflow"
+  git checkout -b "feat/$IDENTIFIER-$SLUG"
+  echo "WORKTREE_ENABLED=false" >> .workflow-state
+fi
+```
+
+If worktrees disabled:
+```bash
+# Traditional branch checkout
+SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
 git checkout -b "feat/$IDENTIFIER-$SLUG"
+echo "WORKTREE_ENABLED=false" >> .workflow-state
+```
+
+**Orphaned worktree detection:**
+```bash
+# Warn if too many worktrees exist
+if [ "$WORKTREE_ENABLED" = "true" ]; then
+  WORKTREE_COUNT=$(git worktree list | grep -c "$WORKTREE_BASE_PATH/")
+  WARN_THRESHOLD=3  # From config
+
+  if [ "$WORKTREE_COUNT" -gt "$WARN_THRESHOLD" ]; then
+    echo "⚠️  You have $WORKTREE_COUNT active worktrees."
+    echo "Run '/cleanup-worktree all' to remove merged ones."
+  fi
+fi
 ```
 
 5. **Update Linear Status**
