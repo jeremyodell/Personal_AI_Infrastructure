@@ -85,10 +85,13 @@ WORKTREE_ENABLED=$(grep "enabled: true" workflow-config.yaml | grep worktree)
 WORKTREE_BASE_PATH=$(grep "base_path:" workflow-config.yaml | awk '{print $2}' | tr -d '"')
 ```
 
+# Slugify title (lowercase, hyphens, alphanumeric only) - Generate once before routing
+SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+
 If worktrees enabled:
 ```bash
-# Slugify title (lowercase, hyphens, alphanumeric only)
-SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+# Get repository root for absolute paths
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # Store original repo path
 ORIGINAL_REPO_PATH=$(pwd)
@@ -104,14 +107,14 @@ if git worktree list | grep -q "$WORKTREE_PATH"; then
   echo "  1) Resume work in existing worktree"
   echo "  2) Remove and recreate (loses uncommitted changes)"
   echo "  3) Cancel"
-  # Prompt user for choice (use AskUserQuestion tool)
+  # TODO: Implement user prompting with AskUserQuestion tool
   # If option 1: cd to existing worktree
   # If option 2: git worktree remove + recreate
   # If option 3: exit
 fi
 
 # Check for lock file (concurrent agent detection)
-LOCK_PATH=".worktrees/.locks/$IDENTIFIER.lock"
+LOCK_PATH="$REPO_ROOT/.worktrees/.locks/$IDENTIFIER.lock"
 if [ -f "$LOCK_PATH" ]; then
   echo "❌ ERROR: Another agent is already working on $IDENTIFIER"
   echo "Lock file: $LOCK_PATH"
@@ -119,20 +122,24 @@ if [ -f "$LOCK_PATH" ]; then
 fi
 
 # Create lock file
-mkdir -p ".worktrees/.locks"
+mkdir -p "$REPO_ROOT/.worktrees/.locks"
 echo "$WORKTREE_PATH" > "$LOCK_PATH"
-trap "rm -f $LOCK_PATH" EXIT
+trap 'rm -f "$LOCK_PATH"' EXIT INT TERM
 
 # Create worktree with new branch
 if git worktree add "$WORKTREE_PATH" -b "feat/$IDENTIFIER-$SLUG"; then
-  cd "$WORKTREE_PATH"
+  if cd "$WORKTREE_PATH"; then
+    # Track worktree in workflow state
+    echo "WORKTREE_PATH=$WORKTREE_PATH" >> .workflow-state
+    echo "ORIGINAL_REPO_PATH=$ORIGINAL_REPO_PATH" >> .workflow-state
+    echo "KEEP_WORKTREE=false" >> .workflow-state
 
-  # Track worktree in workflow state
-  echo "WORKTREE_PATH=$WORKTREE_PATH" >> .workflow-state
-  echo "ORIGINAL_REPO_PATH=$ORIGINAL_REPO_PATH" >> .workflow-state
-  echo "KEEP_WORKTREE=false" >> .workflow-state
-
-  echo "✅ Worktree created at $WORKTREE_PATH"
+    echo "✅ Worktree created at $WORKTREE_PATH"
+  else
+    echo "❌ ERROR: Failed to change directory to $WORKTREE_PATH"
+    rm -f "$LOCK_PATH"
+    exit 1
+  fi
 else
   # Fallback to main repo workflow
   echo "❌ Failed to create worktree"
@@ -145,7 +152,6 @@ fi
 If worktrees disabled:
 ```bash
 # Traditional branch checkout
-SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
 git checkout -b "feat/$IDENTIFIER-$SLUG"
 echo "WORKTREE_ENABLED=false" >> .workflow-state
 ```
@@ -154,7 +160,7 @@ echo "WORKTREE_ENABLED=false" >> .workflow-state
 ```bash
 # Warn if too many worktrees exist
 if [ "$WORKTREE_ENABLED" = "true" ]; then
-  WORKTREE_COUNT=$(git worktree list | grep -c "$WORKTREE_BASE_PATH/")
+  WORKTREE_COUNT=$(git worktree list | grep -c "$WORKTREE_BASE_PATH/" || true)
   WARN_THRESHOLD=3  # From config
 
   if [ "$WORKTREE_COUNT" -gt "$WARN_THRESHOLD" ]; then
