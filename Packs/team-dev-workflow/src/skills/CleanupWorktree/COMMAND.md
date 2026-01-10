@@ -109,7 +109,7 @@ echo "$WORKTREES"
 ```bash
 REMOVED_COUNT=0
 
-echo "$WORKTREES" | while IFS= read -r WORKTREE_PATH; do
+while IFS= read -r WORKTREE_PATH; do
   # Extract branch name
   BRANCH_NAME=$(git worktree list | grep -F "$WORKTREE_PATH" | awk '{print $3}' | tr -d '[]')
 
@@ -127,7 +127,7 @@ echo "$WORKTREES" | while IFS= read -r WORKTREE_PATH; do
   else
     echo "Skipping unmerged worktree: $WORKTREE_PATH"
   fi
-done
+done < <(echo "$WORKTREES")
 
 echo "✅ Cleaned up $REMOVED_COUNT merged worktrees"
 ```
@@ -167,7 +167,6 @@ git worktree list | grep ".worktrees/" | while read -r line; do
   if ! git diff-index --quiet HEAD --; then
     CHANGES_STATUS="⚠️ Uncommitted changes"
   fi
-  PREV_DIR=$(pwd)
   cd - > /dev/null || exit 1
 
   echo "- $WORKTREE_PATH"
