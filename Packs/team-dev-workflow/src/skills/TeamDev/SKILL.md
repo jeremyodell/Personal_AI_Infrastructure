@@ -23,7 +23,13 @@ Integrates:
 work on ENG-123
 work on ticket ENG-456
 implement ENG-789
+
+# Keep worktree after PR creation (for making PR fixes)
+work on ENG-123 --keep-worktree
 ```
+
+**Flags:**
+- `--keep-worktree` - Preserve worktree after PR creation (useful for quick PR fixes)
 
 The workflow automatically:
 1. Fetches ticket from Linear
@@ -33,6 +39,33 @@ The workflow automatically:
 5. Reviews code for quality
 6. Runs quality gates (test, lint, typecheck, build)
 7. Ships (commit, PR, Linear sync)
+
+---
+
+## Flag Parsing
+
+**Worktree Flags:**
+
+When user invokes workflow with flags:
+```typescript
+// Parse user input for flags
+const userInput = "work on ENG-123 --keep-worktree";
+
+// Extract ticket ID and flags
+const ticketMatch = userInput.match(/\b([A-Z]+-\d+)\b/);
+const ticketId = ticketMatch ? ticketMatch[1] : null;
+
+// Check for --keep-worktree flag
+const keepWorktree = userInput.includes('--keep-worktree');
+
+// Store in workflow state
+workflowState.keep_worktree = keepWorktree;
+```
+
+**Flag propagation:**
+- Phase 0: Reads `keep_worktree` from state
+- Phase 8: Respects flag during cleanup
+- Cleanup command: Reads from state file
 
 ---
 
