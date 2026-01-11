@@ -248,40 +248,76 @@ pull_request:
 
 ---
 
-### Step 8: Link Pack to PAI CORE
+### Step 8: Install TeamDev Skill Files
+
+**CRITICAL: Copy skill files so Claude Code can discover them.**
+
+```bash
+# Set paths
+PACK_DIR="$(pwd)"
+PAI_DIR="${PAI_DIR:-$HOME/.claude}"
+
+# Create skill directory structure
+mkdir -p "$PAI_DIR/skills/TeamDev/Workflows"
+mkdir -p "$PAI_DIR/skills/TeamDev/Tools"
+
+# Copy skill files from pack to PAI skills directory
+cp "$PACK_DIR/src/skills/TeamDev/SKILL.md" "$PAI_DIR/skills/TeamDev/"
+cp "$PACK_DIR/src/skills/TeamDev/Workflows/WorkOnTicket.md" "$PAI_DIR/skills/TeamDev/Workflows/"
+cp "$PACK_DIR/src/skills/TeamDev/Workflows/RunQualityGates.md" "$PAI_DIR/skills/TeamDev/Workflows/"
+cp "$PACK_DIR/src/skills/TeamDev/Workflows/ShipFeature.md" "$PAI_DIR/skills/TeamDev/Workflows/"
+cp "$PACK_DIR/src/skills/TeamDev/Tools/LinearHelpers.md" "$PAI_DIR/skills/TeamDev/Tools/"
+cp "$PACK_DIR/src/skills/TeamDev/Tools/TicketRouter.md" "$PAI_DIR/skills/TeamDev/Tools/"
+cp "$PACK_DIR/src/skills/TeamDev/Tools/RalphOrchestrator.md" "$PAI_DIR/skills/TeamDev/Tools/"
+
+# Verify installation
+ls -la "$PAI_DIR/skills/TeamDev/"
+echo "✓ TeamDev skill files installed"
+```
+
+**Files installed:**
+- `SKILL.md` - Main skill routing and workflow orchestration
+- `Workflows/WorkOnTicket.md` - End-to-end ticket workflow (Phases 0-8)
+- `Workflows/RunQualityGates.md` - Quality gate runner with auto-fix
+- `Workflows/ShipFeature.md` - Git + PR + Linear sync
+- `Tools/LinearHelpers.md` - Linear MCP wrapper patterns
+- `Tools/TicketRouter.md` - Label detection and routing logic
+- `Tools/RalphOrchestrator.md` - Ralph-loop management utilities
+
+---
+
+### Step 9: Link Pack to PAI CORE
 
 **Add TeamDev skill to PAI routing:**
 
-Edit `$HOME/dev/projects/personal-ai/PAI/Skills/CORE/SKILL.md`:
+Edit `$HOME/.claude/skills/CORE/SKILL.md`:
 
 ```markdown
 ## Skill Routing
+
+**Team Development Workflow:**
 
 When user says:
 - "work on ENG-123"
 - "work on ticket ENG-456"
 - "implement ENG-789"
 - "start ENG-111"
+- "start ticket ENG-222"
 
 → Invoke TeamDev skill from team-dev-workflow pack
+
+**Path:** `~/dev/projects/personal-ai/PAI/Packs/team-dev-workflow/src/skills/TeamDev/SKILL.md`
 ```
 
-**Or add to PAI config** (if using centralized routing):
+**Note:** This routing is already in CORE if you followed the initial setup. Verify it exists:
 
-```yaml
-# In PAI config
-skills:
-  team_dev:
-    triggers:
-      - "work on"
-      - "implement"
-      - "start ticket"
-    path: "Packs/team-dev-workflow/src/skills/TeamDev/SKILL.md"
+```bash
+grep -A 5 "Team Development Workflow" ~/.claude/skills/CORE/SKILL.md
 ```
 
 ---
 
-### Step 9: Test Basic Workflow
+### Step 10: Test Basic Workflow
 
 **Create a test ticket in Linear:**
 
@@ -316,7 +352,7 @@ work on ENG-999
 
 ---
 
-### Step 10: Verify Installation
+### Step 11: Verify Installation
 
 **Run through VERIFY.md checklist:**
 

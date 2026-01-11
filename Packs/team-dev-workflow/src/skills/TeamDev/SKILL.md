@@ -69,6 +69,64 @@ workflowState.keep_worktree = keepWorktree;
 
 ---
 
+## ⚠️ CRITICAL: Skill Invocation Enforcement
+
+**When CORE routes "work on ENG-123" to this skill, YOU MUST invoke it properly.**
+
+### Required Invocation Pattern
+
+```typescript
+await Skill({
+  skill: "TeamDev",  // ← Exact skill name
+  args: "ENG-123"    // ← Ticket ID only
+});
+```
+
+### If Skill Invocation Fails
+
+**STOP IMMEDIATELY. DO NOT PROCEED MANUALLY.**
+
+If you see an error like:
+- "Skill 'TeamDev' not found"
+- "No such skill"
+- "Skill discovery failed"
+
+**You MUST:**
+
+1. **STOP all work** - Do not attempt manual workflow execution
+2. **Report to user:**
+   ```
+   ❌ CRITICAL ERROR: TeamDev skill not found
+
+   The team-dev-workflow pack is not properly installed. The skill files
+   must be copied to ~/.claude/skills/TeamDev/ for Claude Code to discover them.
+
+   REQUIRED ACTION:
+   Run the installation steps from INSTALL.md, specifically Step 8:
+   "Install TeamDev Skill Files"
+
+   Until this is fixed, the workflow CANNOT run. Do not proceed manually.
+   ```
+3. **Exit immediately** - Do not try to work around this
+
+### Why This Matters
+
+Without the skill properly installed:
+- ❌ No workflow discipline - phases get skipped
+- ❌ No TDD enforcement - tests not written first
+- ❌ No code review - security issues shipped
+- ❌ No quality gates - broken code reaches production
+
+**Example of what went wrong in ODE-183:**
+- Skill invocation failed
+- Proceeded manually without discipline
+- Skipped: Brainstorming, Planning, Code Review, Quality Gates
+- Result: 7 critical security issues, 1 blocker bug, data loss risks
+
+**The workflow exists for a reason. Use it or stop.**
+
+---
+
 ## Workflow Phases
 
 ### Phase 0: Setup & Routing
