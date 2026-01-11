@@ -26,6 +26,23 @@ Phase 8: Ship → commit, PR, Linear sync
 - ✅ **Linear Integration** - Auto-sync status, post updates, track progress
 - ✅ **Plugin Composition** - Leverages official Anthropic plugins
 - ✅ **PAI Integration** - Works with history, voice, hooks
+- ✅ **Parallel Development** - Git worktrees enable working on multiple tickets simultaneously
+- ✅ **Automatic Worktree Management** - Created in Phase 0, cleaned up in Phase 8
+- ✅ **Lock Files** - Prevents concurrent work on same ticket
+- ✅ **Configurable Cleanup** - Auto-cleanup by default, `--keep-worktree` flag for PR fixes
+
+---
+
+## Git Worktrees
+
+This pack uses git worktrees to enable parallel development. Each ticket gets its own isolated workspace.
+
+**Benefits:**
+- Work on multiple Linear tickets simultaneously
+- No branch switching conflicts
+- Automatic setup and cleanup
+
+**Documentation:** See [docs/worktrees.md](docs/worktrees.md) for complete worktree documentation.
 
 ---
 

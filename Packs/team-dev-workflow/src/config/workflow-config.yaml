@@ -412,3 +412,36 @@ user:
 # Example usage:
 # SKIP_QUALITY_GATES=true work on ENG-123
 # RALPH_MAX_ITERATIONS=100 work on ENG-456
+
+# =============================================================================
+# WORKTREE CONFIGURATION
+# =============================================================================
+
+worktree:
+  # Enable worktree creation for isolated workspaces
+  enabled: true
+
+  # Base directory for worktrees (relative to repository root)
+  base_path: ".worktrees"
+
+  # Cleanup behavior
+  cleanup:
+    # Auto-cleanup after PR creation (unless --keep-worktree flag used)
+    auto_cleanup: true
+
+    # Warn when this many worktrees exist
+    warn_threshold: 3
+
+    # Auto-cleanup merged worktrees older than N days
+    auto_cleanup_merged_after_days: 7
+
+  # Lock files to prevent concurrent work on same ticket
+  locking:
+    enabled: true
+    lock_path: ".worktrees/.locks"
+
+  # Fallback behavior
+  fallback:
+    # Fall back to main repo if worktree creation fails
+    on_disk_error: main_repo
+    on_permission_error: main_repo
